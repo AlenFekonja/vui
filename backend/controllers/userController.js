@@ -41,14 +41,6 @@ exports.Login = async (req, res) => {
 
     const { accessToken, refreshToken } = generateTokens(user);
 
-    res.cookie('token', accessToken, {
-      httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      path: '/',
-      maxAge: 24 * 60 * 60 * 1000,
-    });
-
     res.json({ accessToken, refreshToken, message: "Login successful" });
   } catch (error) {
     res.status(500).json({ message: "Server error" });

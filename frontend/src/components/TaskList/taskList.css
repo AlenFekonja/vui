@@ -1,0 +1,46 @@
+.task-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 50px;
+}
+
+.task-card {
+  background-color: #ffff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.15);
+  position: relative;
+  user-select: none;
+  border: 1px solid rgb(205, 205, 205);
+}
+.task-card:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.task-title {
+  user-select: text;
+}
+
+.task-category {
+  background-color: rgb(240, 226, 144);
+  padding: 1px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+  user-select: text;
+}
+
+.theme-dark .task-category {
+  color: black;
+}
+
+.task-description {
+  max-height: 42px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: text;
+  margin-bottom: 6px;
+}

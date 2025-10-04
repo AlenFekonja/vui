@@ -8,7 +8,7 @@ import {
   Typography,
 } from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
-import { BACKEND_URL, showNotification } from "../App.tsx";
+import { BACKEND_URL, IS_PRODUCTION, showNotification } from "../App.tsx";
 import { usePreferences } from "./PreferencesContext.tsx";
 
 const AuthComponent = () => {
@@ -100,7 +100,9 @@ const AuthComponent = () => {
                   { email, password }, {
           withCredentials: true,
         });
-                document.cookie = `token=${response.data.accessToken}; path=/; samesite=lax; max-age=${24 * 60 * 60}`;
+                document.cookie = `token=${response.data.accessToken}; path=/; max-age=${24 * 60 * 60}; ` +
+                  `samesite=${IS_PRODUCTION ? 'none' : 'lax'}; ` +
+                  (IS_PRODUCTION ? 'secure' : '');
                 navigate("/tasks");
                 showNotification("Login", "You are now logged in");
               } catch (error) {

@@ -11,9 +11,9 @@ import {
   Select,
   MenuItem,
 } from "@mui/material";
-import { useNavigate, useParams } from "react-router-dom";
-import { getAndParseJWT } from "./jwt.tsx";
-import { BACKEND_URL, showNotification } from "../App.tsx";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { getAndParseJWT } from "./jwt";
+import { BACKEND_URL, showNotification } from "../App";
 import {
   THEME_OPTIONS,
   FONT_OPTIONS,
@@ -22,7 +22,10 @@ import {
   FontOption,
   LayoutOption,
   usePreferences,
-} from "./PreferencesContext.tsx";
+} from "./PreferencesContext";
+import { trackBrowseeEvent, getCurrentABVariant } from "../browsee";
+
+type Variant = "A" | "B";
 
 export interface Preference {
   _id?: string;
@@ -35,6 +38,26 @@ export interface Preference {
 
 const PreferenceForm = () => {
   const { id } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { refreshPreference } = usePreferences();
+
+  const [from] = useState<string>(() => {
+    const state = location.state as { from?: string } | null;
+    if (state?.from) {
+      return state.from;
+    }
+
+    const stored = sessionStorage.getItem("lastPreferencesPage");
+    if (stored === "/preferences2") return "/preferences2";
+
+    return "/preferences";
+  });
+
+  const variant: Variant =
+    from === "/preferences2" ? "B" : getCurrentABVariant() || "A";
+  const suffix = variant === "A" ? "_A" : "_B";
+
   const [preference, setPreference] = useState<Preference>({
     user_id: "",
     theme: "light",
@@ -43,17 +66,18 @@ const PreferenceForm = () => {
     active: true,
   });
 
+  const [originalActive, setOriginalActive] = useState<boolean | null>(null);
   const [editing, setEditing] = useState(false);
-  const navigate = useNavigate();
-  const { refreshPreference } = usePreferences();
 
   useEffect(() => {
     const fetchPreference = async () => {
       try {
         const response = await axios.get(
-          `${BACKEND_URL}/preferences/single/${id}`, {
-          withCredentials: true,
-        });
+          `${BACKEND_URL}/preferences/single/${id}`,
+          {
+            withCredentials: true,
+          }
+        );
         const data: Preference = response.data;
         setPreference({
           user_id: data.user_id || "",
@@ -62,23 +86,34 @@ const PreferenceForm = () => {
           layout: data.layout || "grid",
           active: data.active ?? true,
         });
+        setOriginalActive(data.active ?? true);
         setEditing(true);
+
+        trackBrowseeEvent(`preferences_form_view_edit${suffix}`);
       } catch (error) {
         showNotification("Preferences Error", "Couldn't fetch preference");
+        trackBrowseeEvent(`preferences_form_load_error${suffix}`, {
+          error: String(error),
+        });
       }
     };
 
     if (id) {
       fetchPreference();
+    } else {
+      setOriginalActive(null);
+      trackBrowseeEvent(`preferences_form_view_create${suffix}`);
     }
-  }, [id]);
+  }, [id, suffix]);
 
   const deactivateOtherPreferences = async (userId: string) => {
     try {
       await axios.put(
-        `${BACKEND_URL}/preferences/deactivate-others/${userId}`, {
+        `${BACKEND_URL}/preferences/deactivate-others/${userId}`,
+        {
           withCredentials: true,
-        });
+        }
+      );
     } catch (error) {
       console.error("Failed to deactivate other preferences:", error);
     }
@@ -89,10 +124,17 @@ const PreferenceForm = () => {
     const userId = getAndParseJWT()?.payload.id;
     if (!userId) {
       showNotification("Auth Error", "User is not logged in");
+      trackBrowseeEvent(`preferences_submit_error${suffix}`, {
+        reason: "no_user",
+      });
       return;
     }
 
     const updatedPreference = { ...preference, user_id: userId };
+
+    const becameActiveNow =
+      updatedPreference.active &&
+      (!editing || originalActive === false);
 
     try {
       await deactivateOtherPreferences(userId);
@@ -100,24 +142,46 @@ const PreferenceForm = () => {
       if (editing && id) {
         await axios.put(
           `${BACKEND_URL}/preferences/${id}`,
-          updatedPreference, {
-          withCredentials: true,
-        });
+          updatedPreference,
+          {
+            withCredentials: true,
+          }
+        );
         showNotification("Preferences", "Preferences updated");
-        refreshPreference();
-        navigate("/preferences");
+        trackBrowseeEvent(`preferences_edit_success${suffix}`);
+
+        if (becameActiveNow) {
+          trackBrowseeEvent(`preferences_set_active${suffix}`, {
+            mode: "edit",
+            preferenceId: id,
+          });
+        }
       } else {
-        await axios.post(
+        const res = await axios.post(
           `${BACKEND_URL}/preferences`,
-          updatedPreference, {
-          withCredentials: true,
-        });
+          updatedPreference,
+          {
+            withCredentials: true,
+          }
+        );
         showNotification("Preferences", "Preferences created");
-        refreshPreference();
-        navigate("/preferences");
+        trackBrowseeEvent(`preferences_submit_success${suffix}`);
+
+        if (becameActiveNow) {
+          trackBrowseeEvent(`preferences_set_active${suffix}`, {
+            mode: "create",
+            preferenceId: res.data?._id,
+          });
+        }
       }
+
+      await refreshPreference();
+      navigate(from);
     } catch (error) {
       showNotification("Preferences Error", "Submit failed: " + error);
+      trackBrowseeEvent(`preferences_submit_error${suffix}`, {
+        error: String(error),
+      });
     }
   };
 
@@ -143,7 +207,7 @@ const PreferenceForm = () => {
             variant="h4"
             sx={{
               fontFamily: "inherit",
-              fontSize: { xs: "1.5rem", sm: "2rem", md: "2.5rem" }, 
+              fontSize: { xs: "1.5rem", sm: "2rem", md: "2.5rem" },
             }}
           >
             {editing ? "Edit Preferences" : "Create Preferences"}
@@ -151,7 +215,7 @@ const PreferenceForm = () => {
 
           <Button
             variant="outlined"
-            onClick={() => navigate("/preferences")}
+            onClick={() => navigate(from)}
             sx={{
               fontFamily: "inherit",
               mt: { xs: 2, sm: 0 },
@@ -179,6 +243,7 @@ const PreferenceForm = () => {
                   value={preference.theme}
                   sx={{ fontFamily: "inherit", mb: 3 }}
                   label="Theme"
+                  name="theme"
                   onChange={(e) =>
                     setPreference({
                       ...preference,
@@ -203,6 +268,7 @@ const PreferenceForm = () => {
                 <Select
                   value={preference.font}
                   label="Font"
+                  name="font"
                   sx={{ fontFamily: "inherit", mb: 3 }}
                   onChange={(e) =>
                     setPreference({
@@ -228,6 +294,7 @@ const PreferenceForm = () => {
                 <Select
                   value={preference.layout}
                   label="Layout"
+                  name="layout"
                   sx={{ fontFamily: "inherit", mb: 3 }}
                   onChange={(e) =>
                     setPreference({
@@ -253,6 +320,7 @@ const PreferenceForm = () => {
                 <Select
                   value={preference.active ? "true" : "false"}
                   label="Active"
+                  name="active"
                   sx={{ fontFamily: "inherit", mb: 3 }}
                   onChange={(e) =>
                     setPreference({
@@ -270,7 +338,7 @@ const PreferenceForm = () => {
                 </Select>
               </FormControl>
 
-              <Button variant="contained" type="submit">
+              <Button variant="contained" name="submit" type="submit">
                 {editing ? "Update Preference" : "Create Preference"}
               </Button>
             </form>

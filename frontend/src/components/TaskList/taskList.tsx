@@ -16,10 +16,10 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
 } from "@mui/icons-material";
-import { BACKEND_URL, showNotification } from "../../App.tsx";
-import { usePreferences } from "../PreferencesContext.tsx";
+import { BACKEND_URL, showNotification } from "../../App";
+import { usePreferences } from "../PreferencesContext";
 import "./taskList.css";
-import { getAndParseJWT } from "../jwt.tsx";
+import { getAndParseJWT } from "../jwt";
 
 export interface Task {
   _id: string;
@@ -196,9 +196,9 @@ const TaskList: React.FC<TaskListProps> = ({ embedded = false }) => {
           size="small"
           sx={{
             fontFamily: "inherit",
-            alignSelf: { xs: "stretch", sm: "auto" }, // xs: full width, sm+: normalno
-            whiteSpace: "nowrap", // prepreči prelom besede
-            px: { xs: 0, sm: 2 }, // malo več paddinga na desni/levo za večje zaslone
+            alignSelf: { xs: "stretch", sm: "auto" }, 
+            whiteSpace: "nowrap", 
+            px: { xs: 0, sm: 2 },
           }}
         >
           Add Task
@@ -211,7 +211,7 @@ const TaskList: React.FC<TaskListProps> = ({ embedded = false }) => {
             {layout === "compact" ? (
               <Box
                 display="flex"
-                flexDirection={{ xs: "column", sm: "row" }} // <- to je ključno
+                flexDirection={{ xs: "column", sm: "row" }} 
                 justifyContent="space-between"
                 alignItems={{ xs: "flex-start", sm: "center" }}
                 gap={2}
@@ -245,7 +245,6 @@ const TaskList: React.FC<TaskListProps> = ({ embedded = false }) => {
                     justifyContent: "center",
                   }}
                 >
-                  {/* Description */}
                   <Typography
                     className="task-description"
                     sx={{
@@ -343,7 +342,6 @@ const TaskList: React.FC<TaskListProps> = ({ embedded = false }) => {
                   </Box>
                 </Box>
 
-                {/* Basic info */}
                 <Box
                   display="flex"
                   gap={3}
@@ -390,7 +388,6 @@ const TaskList: React.FC<TaskListProps> = ({ embedded = false }) => {
                   {task.description || "No description"}
                 </Typography>
 
-                {/* Notes + Reminder + Buttons (list layout) */}
                 {layout === "list" && (
                   <Box
                     display="flex"
@@ -446,7 +443,6 @@ const TaskList: React.FC<TaskListProps> = ({ embedded = false }) => {
                   </Box>
                 )}
 
-                {/* Divider + Buttons (grid layout) */}
                 {layout === "grid" && (
                   <>
                     <Divider sx={{ my: 2 }} />

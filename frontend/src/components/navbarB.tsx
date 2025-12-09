@@ -23,7 +23,7 @@ import VoiceCommand from "./voiceCommand";
 import { useNavigate } from "react-router-dom";
 import { getAndParseJWT } from "./jwt";
 
-const Navbar = () => {
+const NavbarB: React.FC = () => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const open = Boolean(anchorEl);
@@ -39,7 +39,8 @@ const Navbar = () => {
   };
 
   const handleLogout = () => {
-    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
+    document.cookie =
+      "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
     navigate("/");
   };
 
@@ -123,7 +124,8 @@ const Navbar = () => {
             sx={{ height: "50px", width: "auto", marginRight: 1 }}
           />
           <Link
-            href="/tasks"
+            component="button"
+            onClick={() => navigate("/tasks")}
             underline="none"
             color="inherit"
             sx={{ fontSize: "1.3em", fontWeight: "bold" }}
@@ -161,7 +163,8 @@ const Navbar = () => {
           >
             <li>
               <Link
-                href="/tasks"
+                component="button"
+                onClick={() => navigate("/tasks")}
                 underline="none"
                 color="inherit"
                 sx={{ fontSize: "1.1em", "&:hover": { color: "#1e90ff" } }}
@@ -171,7 +174,8 @@ const Navbar = () => {
             </li>
             <li>
               <Link
-                href="/preferences"
+                component="button"
+                onClick={() => navigate("/preferences")}
                 underline="none"
                 color="inherit"
                 sx={{ fontSize: "1.1em", "&:hover": { color: "#1e90ff" } }}
@@ -251,4 +255,4 @@ const Navbar = () => {
   );
 };
 
-export default Navbar;
+export default NavbarB;

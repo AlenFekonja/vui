@@ -10,17 +10,19 @@ import {
   IconButton,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import PaletteIcon from "@mui/icons-material/Palette";
 import FontDownloadIcon from "@mui/icons-material/FontDownload";
 import ViewQuiltIcon from "@mui/icons-material/ViewQuilt";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import PaletteIcon from "@mui/icons-material/Palette";
 
-import { getAndParseJWT } from "./jwt.tsx";
-import { BACKEND_URL, showNotification } from "../App.tsx";
-import { usePreferences } from "./PreferencesContext.tsx"; // Pomembno za layout
+import { getAndParseJWT } from "./jwt";
+import { BACKEND_URL, showNotification } from "../App";
+import { usePreferences } from "./PreferencesContext";
+import { trackBrowseeEvent } from "../browsee";
+import SusSurveyBanner from "./SusSurveyBanner";
 
 export interface Preference {
   _id?: string;
@@ -31,24 +33,38 @@ export interface Preference {
   active: boolean;
 }
 
-const PreferencesList = () => {
+const PreferencesListA = () => {
   const navigate = useNavigate();
   const [preferences, setPreferences] = useState<Preference[]>([]);
-  const { preference: activePreference } = usePreferences(); // pridobimo layout
-  const layout = activePreference?.layout ?? "list"; // fallback če ni preference
-  const { refreshPreference } = usePreferences();
+  const { preference: activePreference, refreshPreference } = usePreferences();
+  const layout = activePreference?.layout ?? "list";
+
+  useEffect(() => {
+    sessionStorage.setItem("lastPreferencesPage", "/preferences");
+    trackBrowseeEvent("preferences_list_view_A");
+  }, []);
+
   const fetchPreferences = async () => {
     try {
       const response = await axios.get(
-        `${BACKEND_URL}/preferences/${getAndParseJWT()?.payload.id}`, {
+        `${BACKEND_URL}/preferences/${getAndParseJWT()?.payload.id}`,
+        {
           withCredentials: true,
-        });
+        }
+      );
       setPreferences(response.data);
+
+      trackBrowseeEvent("preferences_list_loaded_A", {
+        count: response.data?.length ?? 0,
+      });
     } catch (error) {
       showNotification(
         "Preferences Error",
         "Couldn't fetch preferences: " + error
       );
+      trackBrowseeEvent("preferences_list_error_A", {
+        error: String(error),
+      });
     }
   };
 
@@ -56,13 +72,21 @@ const PreferencesList = () => {
     if (!id) return;
     try {
       await axios.delete(`${BACKEND_URL}/preferences/${id}`, {
-          withCredentials: true,
-        });
+        withCredentials: true,
+      });
       fetchPreferences();
       showNotification("Preferences", "Preference was deleted");
       await refreshPreference();
+
+      trackBrowseeEvent("preferences_delete_A", {
+        preferenceId: id,
+      });
     } catch (error) {
       showNotification("Preferences Error", "Preference was not deleted");
+      trackBrowseeEvent("preferences_delete_error_A", {
+        preferenceId: id,
+        error: String(error),
+      });
     }
   };
 
@@ -70,9 +94,25 @@ const PreferencesList = () => {
     fetchPreferences();
   }, []);
 
+  const handleAddClick = () => {
+    trackBrowseeEvent("preferences_add_click_A");
+    navigate("/preferences/add", { state: { from: "/preferences" } });
+  };
+
+  const handleEditClick = (id?: string) => {
+    if (!id) return;
+    trackBrowseeEvent("preferences_edit_click_A", {
+      preferenceId: id,
+    });
+    navigate(`/preferences/edit/${id}`, {
+      state: { from: "/preferences" },
+    });
+  };
+
   const renderCards = () =>
     preferences.map((preference) => (
       <Card
+        data-layout={layout}
         key={preference._id}
         className="preference"
         sx={{
@@ -161,14 +201,14 @@ const PreferencesList = () => {
           <Box
             sx={{
               display: "flex",
-              alignItems: "center", // to je pomembno
+              alignItems: "center",
               gap: 1,
               mt: layout === "compact" ? 0 : 0,
-              alignSelf: "center", // naj bo vedno center, ne flex-end
+              alignSelf: "center",
             }}
           >
             <IconButton
-              onClick={() => navigate(`/preferences/edit/${preference._id}`)}
+              onClick={() => handleEditClick(preference._id)}
               color="primary"
               size="small"
               disableRipple
@@ -232,7 +272,7 @@ const PreferencesList = () => {
 
           <Button
             variant="contained"
-            onClick={() => navigate("/preferences/add")}
+            onClick={handleAddClick}
             sx={{
               fontFamily: "inherit",
               mt: { xs: 2, sm: 0 },
@@ -241,6 +281,8 @@ const PreferencesList = () => {
             Add preference
           </Button>
         </Box>
+
+        <SusSurveyBanner pageName="preferences_list_A" />
 
         {preferences.length === 0 && (
           <Typography>No preferences found.</Typography>
@@ -268,4 +310,4 @@ const PreferencesList = () => {
   );
 };
 
-export default PreferencesList;
+export default PreferencesListA;

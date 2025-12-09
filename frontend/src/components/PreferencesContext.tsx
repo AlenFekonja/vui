@@ -6,15 +6,12 @@ import React, {
   useContext,
 } from "react";
 import axios from "axios";
-import { getAndParseJWT } from "./jwt.tsx";
-
+import { getAndParseJWT } from "./jwt";
 import { ThemeProvider, createTheme, CssBaseline } from "@mui/material";
-import { BACKEND_URL } from "../App.tsx";
-
+import { BACKEND_URL } from "../App";
 export const THEME_OPTIONS = ["light", "dark"] as const;
 export const FONT_OPTIONS = ["sans-serif", "serif", "monospace"] as const;
 export const LAYOUT_OPTIONS = ["grid", "list", "compact"] as const;
-
 export type ThemeOption = (typeof THEME_OPTIONS)[number];
 export type FontOption = (typeof FONT_OPTIONS)[number];
 export type LayoutOption = (typeof LAYOUT_OPTIONS)[number];
@@ -28,7 +25,6 @@ export interface Preference {
   active: boolean;
 }
 
-// Default fallback preference
 const DEFAULT_PREFERENCE: Preference = {
   theme: "light",
   font: "sans-serif",
@@ -66,15 +62,15 @@ export const PreferencesProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       const response = await axios.get(
-        `${BACKEND_URL}/preferences/${userId}`, {
+        `${BACKEND_URL}/preferences/${userId}`,
+        {
           withCredentials: true,
-        });
-      // poišči aktivno preference
+        }
+      );
       const activePref = response.data.find(
         (p: Preference) => p.active === true
       );
 
-      // Če ni aktivne preference ali ni nobene preference, uporabi default
       if (!activePref) {
         setPreference(DEFAULT_PREFERENCE);
       } else {
@@ -82,7 +78,6 @@ export const PreferencesProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (error) {
       console.error("Error fetching active preference", error);
-      // V primeru errorja uporabimo default preference
       setPreference(DEFAULT_PREFERENCE);
     } finally {
       setLoading(false);
@@ -94,9 +89,11 @@ export const PreferencesProvider = ({ children }: { children: ReactNode }) => {
     try {
       await axios.put(
         `${BACKEND_URL}/preferences/${preference._id}`,
-        updated, {
+        updated,
+        {
           withCredentials: true,
-        });
+        }
+      );
       await fetchActivePreference();
     } catch (error) {
       console.error("Error updating preference", error);
@@ -110,7 +107,6 @@ export const PreferencesProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const effectivePref = preference || DEFAULT_PREFERENCE;
 
-    // Nastavi body class glede na preference
     document.body.classList.remove("theme-light", "theme-dark");
     document.body.classList.add(`theme-${effectivePref.theme}`);
 

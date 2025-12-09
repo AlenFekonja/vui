@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { Box, Typography, IconButton, Tooltip, Fade } from "@mui/material";
 import ListIcon from "@mui/icons-material/List";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-import TaskList from "./TaskList/taskList.tsx";
-import CalendarView from "./CalendarView/calendarView.tsx";
+import TaskList from "./TaskList/taskList";
+import CalendarView from "./CalendarView/calendarView";
 const TaskManager = () => {
   const [view, setView] = useState<"list" | "calendar">("list");
 

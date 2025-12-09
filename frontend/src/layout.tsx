@@ -1,9 +1,17 @@
-import React, { useEffect } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
-import Navbar from "./components/navbar.tsx";
-import { Box, Typography, Stack } from "@mui/material";
-import { getAndParseJWT } from "./components/jwt.tsx";
-import { usePreferences } from "./components/PreferencesContext.tsx";
+import React, { useEffect, useState } from "react";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import Navbar from "./components/navbar";
+import NavbarB from "./components/navbarB";
+import {
+  Box,
+  Typography,
+  Stack,
+  Paper,
+  Switch,
+  FormControlLabel,
+} from "@mui/material";
+import { getAndParseJWT } from "./components/jwt";
+import { usePreferences } from "./components/PreferencesContext";
 
 const Footer = () => {
   const { preference } = usePreferences();
@@ -69,8 +77,60 @@ const Footer = () => {
   );
 };
 
-const Layout = () => {
+interface ABVariantToggleProps {
+  variant: "A" | "B";
+  onChange: (newVariant: "A" | "B") => void;
+}
+
+const ABVariantToggle: React.FC<ABVariantToggleProps> = ({
+  variant,
+  onChange,
+}) => {
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newVar: "A" | "B" = event.target.checked ? "B" : "A";
+    onChange(newVar);
+  };
+
+  return (
+    <Paper
+      elevation={4}
+      sx={{
+        position: "fixed",
+        top: 88, 
+        right: 16,
+        zIndex: 2000,
+        px: 2,
+        py: 1,
+        display: "flex",
+        alignItems: "center",
+        gap: 1,
+      }}
+    >
+      <FormControlLabel
+        control={
+          <Switch
+            checked={variant === "B"}
+            onChange={handleChange}
+            size="small"
+          />
+        }
+        label={variant === "B" ? "Variant B" : "Variant A"}
+      />
+    </Paper>
+  );
+};
+
+const Layout: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const [variant, setVariant] = useState<"A" | "B">(() => {
+    const stored = localStorage.getItem("abVariant");
+    if (stored === "A" || stored === "B") return stored;
+    return "A";
+  });
+
+  const NavComponent = variant === "B" ? NavbarB : Navbar;
 
   useEffect(() => {
     const jwt = getAndParseJWT();
@@ -78,6 +138,46 @@ const Layout = () => {
       navigate("/");
     }
   }, [navigate]);
+
+  useEffect(() => {
+    const path = location.pathname;
+
+    if (variant === "B" && path === "/preferences") {
+      navigate("/preferences2", { replace: true });
+      return;
+    }
+    if (variant === "A" && path === "/preferences2") {
+      navigate("/preferences", { replace: true });
+      return;
+    }
+
+    if (variant === "B" && path === "/tasks/add") {
+      navigate("/tasks/add2", { replace: true });
+      return;
+    }
+    if (variant === "A" && path === "/tasks/add2") {
+      navigate("/tasks/add", { replace: true });
+      return;
+    }
+
+    if (path.startsWith("/tasks/edit/") && variant === "A") {
+      navigate(path.replace("/tasks/edit/", "/tasks/edit/"), {
+        replace: true,
+      });
+      return;
+    }
+    if (path.startsWith("/tasks/edit/") && variant === "B") {
+      navigate(path.replace("/tasks/edit/", "/tasks/edit/"), {
+        replace: true,
+      });
+      return;
+    }
+  }, [variant, location.pathname, navigate]);
+
+  const handleVariantChange = (newVariant: "A" | "B") => {
+    setVariant(newVariant);
+    localStorage.setItem("abVariant", newVariant);
+  };
 
   return (
     <Box
@@ -89,7 +189,9 @@ const Layout = () => {
         width: "100%",
       }}
     >
-      <Navbar />
+      <NavComponent />
+      <ABVariantToggle variant={variant} onChange={handleVariantChange} />
+
       <Box
         component="main"
         sx={{
@@ -112,6 +214,7 @@ const Layout = () => {
           <Outlet />
         </Box>
       </Box>
+
       <Footer />
     </Box>
   );
